@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DropMaster</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        #game-container {
+            width: 300px;
+            height: 500px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+            position: relative;
+        }
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        button {
+            margin: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #currency, #level {
+            position: absolute;
+            top: 10px;
+            font-size: 18px;
+        }
+        #currency { left: 10px; }
+        #level { right: 10px; }
+        .item-list {
+            width: 100%;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px;
+            border-bottom: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="main-menu" class="screen">
+            <h1>DropMaster</h1>
+            <button onclick="showScreen('drop-screen')">Attempt Drop</button>
+            <button onclick="showScreen('inventory-screen')">Inventory</button>
+            <button onclick="showScreen('marketplace-screen')">Marketplace</button>
+            <button onclick="showScreen('arena-screen')">Arena</button>
+        </div>
+
+        <div id="drop-screen" class="screen" style="display: none;">
+            <h2>Drop Attempt</h2>
+            <p>Cost: 10 coins</p>
+            <button onclick="attemptDrop()">Try Your Luck!</button>
+            <button onclick="showScreen('main-menu')">Back</button>
+        </div>
+
+        <div id="inventory-screen" class="screen" style="display: none;">
+            <h2>Inventory</h2>
+            <div id="inventory-list" class="item-list"></div>
+            <button onclick="showScreen('main-menu')">Back</button>
+        </div>
+
+        <div id="marketplace-screen" class="screen" style="display: none;">
+            <h2>Marketplace</h2>
+            <p>Coming soon!</p>
+            <button onclick="showScreen('main-menu')">Back</button>
+        </div>
+
+        <div id="arena-screen" class="screen" style="display: none;">
+            <h2>Arena</h2>
+            <p>Compete against other players!</p>
+            <button onclick="enterArena()">Enter Arena</button>
+            <button onclick="showScreen('main-menu')">Back</button>
+        </div>
+
+        <div id="currency"></div>
+        <div id="level"></div>
+    </div>
+
+    <script>
+        let playerData = {
+            inventory: [],
+            currency: 100,
+            level: 1
+        };
+
+        const SKINS = {
+            common: { prob: 0.6, value: 10 },
+            rare: { prob: 0.3, value: 50 },
+            epic: { prob: 0.09, value: 200 },
+            legendary: { prob: 0.01, value: 1000 }
+        };
+
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(screen => screen.style.display = 'none');
+            document.getElementById(screenId).style.display = 'flex';
+            updateDisplay();
+        }
+
+        function attemptDrop() {
+            if (playerData.currency < 10) {
+                alert("Not enough coins!");
+                return;
+            }
+            playerData.currency -= 10;
+            
+            const roll = Math.random();
+            let cumulativeProb = 0;
+            let selectedRarity;
+            for (const [rarity, data] of Object.entries(SKINS)) {
+                cumulativeProb += data.prob;
+                if (roll <= cumulativeProb) {
+                    selectedRarity = rarity;
+                    break;
+                }
+            }
+
+            const newSkin = {
+                name: `${selectedRarity.charAt(0).toUpperCase() + selectedRarity.slice(1)} Skin`,
+                rarity: selectedRarity,
+                level: 1
+            };
+            playerData.inventory.push(newSkin);
+
+            alert(`You got a ${selectedRarity} skin: ${newSkin.name}!`);
+            updateDisplay();
+        }
+
+        function updateInventory() {
+            const inventoryList = document.getElementById('inventory-list');
+            inventoryList.innerHTML = '';
+            playerData.inventory.forEach(skin => {
+                const item = document.createElement('div');
+                item.className = 'item';
+                item.innerHTML = `
+                    <span>${skin.name} (${skin.rarity}, Level ${skin.level})</span>
+                    <button onclick="upgradeSkin('${skin.name}')">Upgrade</button>
+                `;
+                inventoryList.appendChild(item);
+            });
+        }
+
+        function upgradeSkin(skinName) {
+            const skin = playerData.inventory.find(s => s.name === skinName);
+            if (skin && playerData.currency >= 50) {
+                skin.level++;
+                playerData.currency -= 50;
+                alert(`${skin.name} upgraded to level ${skin.level}!`);
+                updateInventory();
+                updateDisplay();
+            } else {
+                alert("Not enough coins to upgrade!");
+            }
+        }
+
+        function enterArena() {
+            if (playerData.inventory.length < 3 || playerData.level < 5) {
+                alert("You need at least 3 skins and to be level 5 to enter the arena!");
+            } else {
+                alert("Welcome to the Arena! You competed and earned 50 coins!");
+                playerData.currency += 50;
+                updateDisplay();
+            }
+        }
+
+        function updateDisplay() {
+            document.getElementById('currency').textContent = `Coins: ${playerData.currency}`;
+            document.getElementById('level').textContent = `Level: ${playerData.level}`;
+            updateInventory();
+        }
+
+        // Initialize the game
+        showScreen('main-menu');
+        updateDisplay();
+
+        // Function to send score back to Telegram
+        function sendScoreToTelegram() {
+            window.TelegramGameProxy.setScore(playerData.level);
+        }
+    </script>
+</body>
+</html>
